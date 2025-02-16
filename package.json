@@ -63,7 +63,9 @@
     "framer-motion": "latest",
     "openai": "latest",
     "react-dropzone": "latest",
-    "@heroicons/react": "latest"
+    "@heroicons/react": "latest",
+    "pdf-parse": "^1.1.1",
+    "mammoth": "^1.4.2"
   },
   "devDependencies": {
     "@types/node": "^22",
