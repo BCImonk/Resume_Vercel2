@@ -25,20 +25,23 @@ export async function POST(req: Request) {
             })
         });
 
-        const data = await response.json();
+        const rawText = await response.text(); // Read as text to avoid JSON errors
+        console.log("Mistral API Raw Response:", rawText);
 
-        // Log API response for debugging
-        console.log("Mistral API Response:", JSON.stringify(data, null, 2));
-
-        if (!response.ok) {
-            console.error("Error: Mistral API returned an error.", data);
-            return NextResponse.json({ error: "Error from Mistral API", details: data }, { status: response.status });
+        try {
+            const data = JSON.parse(rawText); // Now attempt to parse JSON
+            if (!response.ok) {
+                console.error("Mistral API Error:", data);
+                return NextResponse.json({ error: "Error from Mistral API", details: data }, { status: response.status });
+            }
+            return NextResponse.json({ optimizedResume: data.choices?.[0]?.message?.content || "Error processing response." });
+        } catch (jsonError) {
+            console.error("Failed to parse JSON from Mistral:", jsonError);
+            return NextResponse.json({ error: "Invalid response from Mistral", details: rawText }, { status: 500 });
         }
-
-        return NextResponse.json({ optimizedResume: data.choices?.[0]?.message?.content || "Error processing response." });
 
     } catch (error) {
         console.error("Unexpected error:", error);
-        return NextResponse.json({ error: "Failed to optimize resume", details: error }, { status: 500 });
+        return NextResponse.json({ error: "Failed to optimize resume", details: String(error) }, { status: 500 });
     }
 }
