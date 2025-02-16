@@ -17,7 +17,7 @@ export async function POST(req: Request) {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                model: "mistral-small-latest",
+                model: "mistral-7b-instruct",
                 messages: [
                     { role: "system", content: "You are an expert in ATS resume optimization." },
                     { role: "user", content: `Optimize this resume: ${resume} for this job: ${jobDescription}` }
@@ -25,21 +25,29 @@ export async function POST(req: Request) {
             })
         });
 
-        const rawText = await response.text(); // Read as text to avoid JSON errors
+        // Read the response as raw text
+        const rawText = await response.text();
         console.log("Mistral API Raw Response:", rawText);
 
-        try {
-            const data = JSON.parse(rawText); // Now attempt to parse JSON
-            if (!response.ok) {
-                console.error("Mistral API Error:", data);
-                return NextResponse.json({ error: "Error from Mistral API", details: data }, { status: response.status });
+        // Check the Content-Type header to determine if we expect JSON
+        const contentType = response.headers.get("content-type") || "";
+        if (contentType.includes("application/json")) {
+            try {
+                const data = JSON.parse(rawText);
+                if (!response.ok) {
+                    console.error("Mistral API Error:", data);
+                    return NextResponse.json({ error: "Error from Mistral API", details: data }, { status: response.status });
+                }
+                return NextResponse.json({ optimizedResume: data.choices?.[0]?.message?.content || "Error processing response." });
+            } catch (jsonError) {
+                console.error("Failed to parse JSON from Mistral:", jsonError);
+                return NextResponse.json({ error: "Invalid JSON response from Mistral", details: rawText }, { status: 500 });
             }
-            return NextResponse.json({ optimizedResume: data.choices?.[0]?.message?.content || "Error processing response." });
-        } catch (jsonError) {
-            console.error("Failed to parse JSON from Mistral:", jsonError);
-            return NextResponse.json({ error: "Invalid response from Mistral", details: rawText }, { status: 500 });
+        } else {
+            // Log and return an error if response is not JSON
+            console.error("Unexpected content-type:", contentType);
+            return NextResponse.json({ error: "Unexpected response type from Mistral", details: rawText }, { status: 500 });
         }
-
     } catch (error) {
         console.error("Unexpected error:", error);
         return NextResponse.json({ error: "Failed to optimize resume", details: String(error) }, { status: 500 });
