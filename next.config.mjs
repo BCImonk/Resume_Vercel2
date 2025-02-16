@@ -20,9 +20,17 @@ const nextConfig = {
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
-  },
-  api: {
-    bodyParser: false, // Disable body parser to handle file uploads
+    webpack: (config, { isServer }) => {
+      if (isServer) {
+        const webpack = require("webpack");
+        config.plugins.push(
+          new webpack.IgnorePlugin({
+            resourceRegExp: /\/test\/data\/05-versions-space\.pdf$/,
+          })
+        );
+      }
+      return config;
+    },
   },
 };
 
@@ -32,10 +40,9 @@ function mergeConfig(nextConfig, userConfig) {
   if (!userConfig) {
     return;
   }
-
   for (const key in userConfig) {
     if (
-      typeof nextConfig[key] === 'object' &&
+      typeof nextConfig[key] === "object" &&
       !Array.isArray(nextConfig[key])
     ) {
       nextConfig[key] = {
