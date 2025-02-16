@@ -1,48 +1,33 @@
-import { type NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
+import { NextResponse } from "next/server";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+export async function POST(req: Request) {
+    try {
+        const { resume, jobDescription } = await req.json();
+        
+        const apiKey = process.env.MISTRAL_API_KEY;
+        if (!apiKey) {
+            return NextResponse.json({ error: "API key is missing" }, { status: 500 });
+        }
 
-export async function POST(req: NextRequest) {
-  try {
-    const formData = await req.formData();
-    const resume = formData.get("resume") as File; // 🚨 Typo? "resume" vs "resume"
-    const jobDescription = formData.get("jobDescription") as File;
+        const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${apiKey}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: "mistral-7b-instruct",
+                messages: [
+                    { role: "system", content: "You are an expert in ATS resume optimization." },
+                    { role: "user", content: `Optimize this resume: ${resume} for this job: ${jobDescription}` }
+                ]
+            })
+        });
 
-    if (!resume || !jobDescription) {
-      return NextResponse.json(
-        { error: "Missing resume or job description" },
-        { status: 400 }
-      );
+        const data = await response.json();
+        return NextResponse.json({ optimizedResume: data.choices?.[0]?.message?.content || "Error processing response." });
+
+    } catch (error) {
+        return NextResponse.json({ error: "Failed to optimize resume" }, { status: 500 });
     }
-
-    const resumeText = await resume.text();
-    const jobDescriptionText = await jobDescription.text();
-
-    const prompt = `Given the following resume and job description, create an optimized one-page resume that is ATS-friendly and keyword-rich:
-
-      Resume:
-      ${resumeText}
-
-      Job Description:
-      ${jobDescriptionText}
-
-      Please format the optimized resume in a clear, professional manner.`; // Same as before
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // ✅ Use a validated model
-      messages: [{ role: "user", content: prompt }],
-    });
-
-    const optimizedResume = completion.choices[0].message.content;
-    return NextResponse.json({ optimizedResume });
-  } catch (error) {
-    console.error("Error optimizing resume:", error);
-    return NextResponse.json(
-      { error: "Error optimizing resume" },
-      { status: 500 }
-    );
-  }
 }
