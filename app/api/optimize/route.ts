@@ -67,7 +67,7 @@ export async function POST(req: Request) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "mistral-7b-instruct",
+        model: "mistral-small-latest",
         messages: [
           { role: "system", content: "You are an expert in ATS resume optimization." },
           { role: "user", content: `Optimize this resume: ${resumeText} for this job: ${jdText}` }
