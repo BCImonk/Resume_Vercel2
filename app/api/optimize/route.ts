@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       Please format the optimized resume in a clear, professional manner.`; // Same as before
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o", // ✅ Use a validated model
+      model: "gpt-4o-mini", // ✅ Use a validated model
       messages: [{ role: "user", content: prompt }],
     });
 
